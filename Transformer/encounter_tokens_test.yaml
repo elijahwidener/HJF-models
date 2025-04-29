@@ -1,0 +1,207 @@
+# Encounter 1 (Patient ID: 1558993153)
+DATE: 2016-12-19
+TBI DATE: 2017-11-15
+AGE: 19
+GENDER: Male
+SEVERITY: Mild
+
+STUDY 90 DAY: 1
+STUDY 90 DAY ENCOUNTER: 0
+STUDY 180 DAY: 1
+STUDY 180 DAY ENCOUNTER: 0
+STUDY 270 DAY: 1
+STUDY 270 DAY ENCOUNTER: 0
+STUDY 365 DAY: 1
+STUDY 365 DAY ENCOUNTER: 1
+
+FACILITY NAME: NBHC FALLON
+FACILITY TYPE: CLINIC
+
+DIAGNOSIS CATEGORY: Symptoms, signs and abnormal clinical and laboratory findings, not elsewhere classified
+DIAGNOSIS DESCRIPTION: UNKNOWN
+
+EVALUATION/MANAGEMENT CODE: 99202
+
+TOTAL COST: High
+TOTAL COST VALUE: $686
+
+COST BREAKDOWN:
+    - CLINICAL SALARY COST: $0
+    - LAB COST: Low ($44)
+    - OTHER COST: Medium ($181)
+    - ANCILLARY COST: $0
+    - PHARMACY COST: Medium ($75)
+    - PROFESSIONAL SALARY COST: Medium ($79)
+    - RADIOLOGY COST: Medium ($129)
+    - SUPPORT COST: Medium ($175)
+
+RANK: Enlisted Junior (E1–E4)
+SERVICE: Army
+PRODUCT LINE: Primary Care
+APPOINTMENT TYPE: 24-Hour Care
+PROVIDER SPEC: Unknown
+PROVIDER RVU: 0.93
+PROVIDER SKILL TYPE: Direct Care Professional
+APPOINTMENT STATUS: Unknown
+PATIENT CATEGORY: A11
+
+------------------------------------------------------------
+
+# Encounter 2 (Patient ID: 1558993153)
+DATE: 2016-12-08
+TBI DATE: 2017-11-15
+AGE: 19
+GENDER: Male
+SEVERITY: Mild
+
+STUDY 90 DAY: 1
+STUDY 90 DAY ENCOUNTER: 0
+STUDY 180 DAY: 1
+STUDY 180 DAY ENCOUNTER: 0
+STUDY 270 DAY: 1
+STUDY 270 DAY ENCOUNTER: 0
+STUDY 365 DAY: 1
+STUDY 365 DAY ENCOUNTER: 1
+
+FACILITY NAME: MCWETHY TMC-FT JACKSON
+FACILITY TYPE: CLINIC
+
+DIAGNOSIS CATEGORY: Diseases of the musculoskeletal system and connective tissue
+DIAGNOSIS DESCRIPTION: Dorsalgia, unspecified
+
+EVALUATION/MANAGEMENT CODE: 99499
+# ^ procedure code, used for reimbursement purposes
+# select distinct codes, take it to LLM, say given list of codes, append to definition. 
+
+TOTAL COST: Low
+TOTAL COST VALUE: $47
+
+COST BREAKDOWN:
+    - CLINICAL SALARY COST: $0
+    - LAB COST: Very Low ($0)
+    - OTHER COST: Low ($22)
+    - ANCILLARY COST: $0
+    - PHARMACY COST: Very Low ($0)
+    - PROFESSIONAL SALARY COST: $0
+    - RADIOLOGY COST: $0
+    - SUPPORT COST: Low ($23)
+
+RANK: Enlisted Junior (E1–E4)
+SERVICE: Army
+PRODUCT LINE: Orthopedics
+APPOINTMENT TYPE: Specialty
+PROVIDER SPEC: Unknown
+PROVIDER RVU: 0.45
+PROVIDER SKILL TYPE: Direct Care Para-Professional
+APPOINTMENT STATUS: Unknown
+PATIENT CATEGORY: A11
+
+------------------------------------------------------------
+
+# Encounter 3 (Patient ID: 1401596863)
+DATE: 2016-12-01
+TBI DATE: 2017-11-29
+AGE: 28
+GENDER: Male
+SEVERITY: Mild
+
+STUDY 90 DAY: 1
+STUDY 90 DAY ENCOUNTER: 0
+STUDY 180 DAY: 1
+STUDY 180 DAY ENCOUNTER: 0
+STUDY 270 DAY: 1
+STUDY 270 DAY ENCOUNTER: 0
+STUDY 365 DAY: 1
+STUDY 365 DAY ENCOUNTER: 1
+
+FACILITY NAME: AHC MCDONALD-EUSTIS
+FACILITY TYPE: CLINIC
+
+DIAGNOSIS CATEGORY: Diseases of the blood and blood-forming organs and certain disorders involving the immune mechanism
+DIAGNOSIS DESCRIPTION: Unknown
+
+PROC1: 92552
+PROC2: 97110
+EVALUATION/MANAGEMENT CODE: 99499
+
+TOTAL COST: $0
+TOTAL COST VALUE: $0
+
+COST BREAKDOWN:
+    - CLINICAL SALARY COST: $0
+    - LAB COST: $0
+    - OTHER COST: $0
+    - ANCILLARY COST: $0
+    - PHARMACY COST: $0
+    - PROFESSIONAL SALARY COST: $0
+    - RADIOLOGY COST: $0
+    - SUPPORT COST: $0
+
+RANK: Enlisted Senior (E5–E9)
+SERVICE: Army
+PRODUCT LINE: Other
+APPOINTMENT TYPE: Procedure
+PROVIDER SPEC: Unknown
+PROVIDER RVU: 0.00
+PROVIDER SKILL TYPE: Direct Care Para-Professional
+APPOINTMENT STATUS: Unknown
+PATIENT CATEGORY: A11
+
+------------------------------------------------------------
+
+# Encounter 4 (Patient ID: 1401596863)
+DATE: 2016-12-06
+TBI DATE: 2017-11-29
+AGE: 28
+GENDER: Male
+SEVERITY: Mild
+
+STUDY 90 DAY: 1
+STUDY 90 DAY ENCOUNTER: 0
+STUDY 180 DAY: 1
+STUDY 180 DAY ENCOUNTER: 0
+STUDY 270 DAY: 1
+STUDY 270 DAY ENCOUNTER: 0
+STUDY 365 DAY: 1
+STUDY 365 DAY ENCOUNTER: 1
+
+FACILITY NAME: RESOLUTE HEALTH-FT EUSTIS
+FACILITY TYPE: CLINIC
+
+DIAGNOSIS CATEGORY: Injury, poisoning and certain other consequences of external causes
+DIAGNOSIS DESCRIPTION: Unspecified sprain of right thumb, initial encounter
+
+DIAGNOSIS CATEGORY: External causes of morbidity
+DIAGNOSIS DESCRIPTION: Activity, American tackle football
+
+DIAGNOSIS CATEGORY: Factors influencing health status and contact with health services
+DIAGNOSIS DESCRIPTION: Encounter for screening for other disorder
+
+DIAGNOSIS CATEGORY: Factors influencing health status and contact with health services
+DIAGNOSIS DESCRIPTION: Tobacco use
+
+PROC1: 92552
+EVALUATION/MANAGEMENT CODE: 99213
+
+TOTAL COST: High
+TOTAL COST VALUE: $269
+
+COST BREAKDOWN:
+    - CLINICAL SALARY COST: $0
+    - LAB COST: Low ($26)
+    - OTHER COST: Medium ($92)
+    - ANCILLARY COST: $0
+    - PHARMACY COST: Medium ($57)
+    - PROFESSIONAL SALARY COST: Low ($33)
+    - RADIOLOGY COST: $0
+    - SUPPORT COST: Medium ($59)
+
+RANK: Enlisted Senior (E5–E9)
+SERVICE: Army
+PRODUCT LINE: Primary Care
+APPOINTMENT TYPE: Follow-Up
+PROVIDER SPEC: Unknown
+PROVIDER RVU: 0.97
+PROVIDER SKILL TYPE: Direct Care Professional
+APPOINTMENT STATUS: Unknown
+PATIENT CATEGORY: A11
