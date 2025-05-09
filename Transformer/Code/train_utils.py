@@ -8,7 +8,10 @@ import os
 import json
 from config import DEVICE
 import time
+from predict import predict_with_window_ensembling
 
+
+# In train_utils.py
 
 def train_epoch(model, dataloader, optimizer, scheduler, device, class_weights=None):
     """
@@ -16,109 +19,129 @@ def train_epoch(model, dataloader, optimizer, scheduler, device, class_weights=N
     """
     model.train()
     total_loss = 0
-    data_load_time = 0
-    forward_time = 0
-    backward_time = 0
-    total_time = 0
-    
-    epoch_start = time.time()
-    batch_start = time.time()
-    
-    # Initialize gradient scaler for AMP
-    scaler = GradScaler() if torch.cuda.is_available() else None
     
     for batch_idx, batch in enumerate(dataloader):
-        # Time data loading
-        data_load_end = time.time()
-        data_load_time += (data_load_end - batch_start)
-        
         # Move batch to device
         input_ids = batch['input_ids'].to(device)
         attention_mask = batch['attention_mask'].to(device)
         labels = batch['labels'].to(device)
-        temporal_weights = batch['temporal_weights'].to(device)
+        temporal_weights = batch['temporal_weights'].to(device) if 'temporal_weights' in batch else None
         
         # Clear gradients
         optimizer.zero_grad()
         
-        # Forward pass with timing
-        forward_start = time.time()
+        # Forward pass
+        outputs, _ = model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            temporal_weights=temporal_weights
+        )
         
-        # Use AMP for faster training on GPU
-        if torch.cuda.is_available():
-            with autocast():
-                outputs, _ = model(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,
-                    temporal_weights=temporal_weights
+        # Apply class weights based on window-specific imbalance
+        if class_weights is not None:
+            # Calculate weighted BCE loss for each window prediction
+            loss = 0
+            for i in range(labels.shape[1]):
+                window_labels = labels[:, i]
+                window_outputs = outputs[:, i]
+                window_weight = class_weights[i]
+                
+                # Create weights tensor for each sample based on its class
+                sample_weights = torch.ones_like(window_labels)
+                sample_weights[window_labels == 1] = window_weight
+                
+                # Apply weighted BCE loss
+                window_loss = F.binary_cross_entropy(
+                    window_outputs, 
+                    window_labels, 
+                    weight=sample_weights
                 )
-                # Apply class weights if provided
-                if class_weights is not None:
-                    loss = F.binary_cross_entropy(outputs, labels, weight=class_weights.to(device))  
-                else:
-                    loss = F.binary_cross_entropy(outputs, labels)            
-            forward_end = time.time()
-            forward_time += (forward_end - forward_start)
+                loss += window_loss
             
-            # Backward pass with timing
-            backward_start = time.time()
-            
-            # Scale gradients and backward pass
-            scaler.scale(loss).backward()
-            scaler.unscale_(optimizer)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            scaler.step(optimizer)
-            scaler.update()
+            # Average loss across windows
+            loss = loss / labels.shape[1]
         else:
-            # Regular training for CPU
-            outputs, _ = model(
-                input_ids=input_ids,
-                attention_mask=attention_mask,
-                temporal_weights=temporal_weights
-            )
-            if class_weights is not None:
-                loss = F.binary_cross_entropy(outputs, labels, weight=class_weights.to(device))
-            else:
-                loss = F.binary_cross_entropy(outputs, labels)            
-            forward_end = time.time()
-            forward_time += (forward_end - forward_start)
-            
-            # Backward pass with timing
-            backward_start = time.time()
-            
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            # Standard BCE loss if no weights provided
+            loss = F.binary_cross_entropy(outputs, labels)
         
+        # Backward pass
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
         scheduler.step()
-        
-        backward_end = time.time()
-        backward_time += (backward_end - backward_start)
         
         # Update total loss
         total_loss += loss.item()
-
+        
         # Print progress every 10 batches
         if (batch_idx + 1) % 10 == 0:
-            batch_end = time.time()
-            batch_time = batch_end - batch_start
-            total_time += batch_time
-            
             print(f"  Batch {batch_idx + 1}/{len(dataloader)}, Loss: {loss.item():.4f}")
-            print(f"    Times: Batch={batch_time:.2f}s, Data={data_load_time/10:.2f}s, Forward={forward_time/10:.2f}s, Backward={backward_time/10:.2f}s")
-            
-            # Reset timers
-            data_load_time = 0
-            forward_time = 0
-            backward_time = 0
-            batch_start = time.time()
     
-    epoch_time = time.time() - epoch_start
     avg_loss = total_loss / len(dataloader)
-    
-    print(f"Epoch completed in {epoch_time:.2f}s, Avg loss: {avg_loss:.4f}")
+    print(f"Epoch completed, Avg loss: {avg_loss:.4f}")
     
     return avg_loss
+
+def train_model(model, train_dataloader, val_dataloader, optimizer, scheduler, device, 
+               num_epochs=3, patience=2):
+    """
+    Train the model with early stopping and class weighting
+    """
+    best_val_auc = 0
+    best_model = None
+    patience_counter = 0
+    history = {
+        'train_loss': [],
+        'val_metrics': []
+    }
+    
+    # Define class weights based on imbalance rates
+    # Using inverse of positive class rate to weight rare positive examples higher
+    pos_rates = [0.236, 0.294, 0.371, 0.444]  # 30, 60, 180, 365 days
+    class_weights = [1.0 / rate for rate in pos_rates]
+    
+    for epoch in range(num_epochs):
+        print(f"Epoch {epoch+1}/{num_epochs}")
+        
+        # Train for one epoch with class weights
+        avg_train_loss = train_epoch(
+            model, train_dataloader, optimizer, scheduler, device, 
+            class_weights=class_weights
+        )
+        
+        history['train_loss'].append(avg_train_loss)
+        print(f"  Train Loss: {avg_train_loss:.4f}")
+        
+        # Evaluate on validation set
+        val_metrics = evaluate(model, val_dataloader, device)
+        history['val_metrics'].append(val_metrics)
+        
+        # Print validation metrics
+        print("  Validation Metrics:")
+        for window, metrics in val_metrics.items():
+            print(f"    {window}: ROC AUC: {metrics['roc_auc']:.4f}, PR AUC: {metrics['pr_auc']:.4f}")
+        
+        # Calculate average ROC AUC across all windows
+        avg_val_auc = np.mean([metrics['roc_auc'] for metrics in val_metrics.values()])
+        
+        # Check if this is the best model
+        if avg_val_auc > best_val_auc:
+            best_val_auc = avg_val_auc
+            best_model = model.state_dict().copy()
+            patience_counter = 0
+        else:
+            patience_counter += 1
+            
+        # Early stopping
+        if patience_counter >= patience:
+            print(f"Early stopping after {epoch+1} epochs")
+            break
+    
+    # Load best model
+    if best_model is not None:
+        model.load_state_dict(best_model)
+    
+    return model, history
 
 
 def evaluate(model, dataloader, device):
@@ -135,8 +158,7 @@ def evaluate(model, dataloader, device):
     """
     model.eval()
     
-    all_preds = []
-    all_labels = []
+    all_preds, all_labels = predict_with_window_ensembling(model, dataloader, device)
     
     with torch.no_grad():
         for batch in dataloader:
@@ -191,72 +213,6 @@ def evaluate(model, dataloader, device):
     
     return results
 
-def train_model(model, train_dataloader, val_dataloader, optimizer, scheduler, device, 
-                num_epochs=3, patience=2, class_weights_list=None):
-    """
-    Train the model with early stopping
-    
-    Args:
-        model: Model to train
-        train_dataloader: DataLoader for training data
-        val_dataloader: DataLoader for validation data
-        optimizer: Optimizer to use
-        scheduler: Learning rate scheduler
-        device: Device to use
-        num_epochs: Maximum number of epochs to train
-        patience: Patience for early stopping
-        
-    Returns:
-        model: Trained model
-        history: Training history
-    """
-    best_val_auc = 0
-    best_model = None
-    patience_counter = 0
-    history = {
-        'train_loss': [],
-        'val_metrics': []
-    }
-    
-    for epoch in range(num_epochs):
-        print(f"Epoch {epoch+1}/{num_epochs}")
-        
-        # Train for one epoch
-        avg_train_loss = train_epoch(model, train_dataloader, optimizer, scheduler, device, class_weights_list)        
-        history['train_loss'].append(avg_train_loss)
-        
-        print(f"  Train Loss: {avg_train_loss:.4f}")
-        
-        # Evaluate on validation set
-        val_metrics = evaluate(model, val_dataloader, device)
-        history['val_metrics'].append(val_metrics)
-        
-        # Print validation metrics
-        print("  Validation Metrics:")
-        for window, metrics in val_metrics.items():
-            print(f"    {window}: ROC AUC: {metrics['roc_auc']:.4f}, PR AUC: {metrics['pr_auc']:.4f}")
-        
-        # Calculate average ROC AUC across all windows
-        avg_val_auc = np.mean([metrics['roc_auc'] for metrics in val_metrics.values()])
-        
-        # Check if this is the best model
-        if avg_val_auc > best_val_auc:
-            best_val_auc = avg_val_auc
-            best_model = model.state_dict().copy()
-            patience_counter = 0
-        else:
-            patience_counter += 1
-            
-        # Early stopping
-        if patience_counter >= patience:
-            print(f"Early stopping after {epoch+1} epochs")
-            break
-    
-    # Load best model
-    if best_model is not None:
-        model.load_state_dict(best_model)
-    
-    return model, history
 
 def plot_training_history(history, output_dir):
     """Plot training loss and validation metrics"""

@@ -15,7 +15,8 @@ class TemporalAttention(nn.Module):
         attention_scores = self.attention(hidden_states).squeeze(-1)
         
         # Apply attention mask (set masked positions to large negative value)
-        attention_scores = attention_scores.masked_fill(attention_mask == 0, -1e9)
+        # Changed from -1e9 to -1e4 to avoid overflow in half precision
+        attention_scores = attention_scores.masked_fill(attention_mask == 0, -1e4)
         
         # Apply softmax to get attention weights
         attention_weights = F.softmax(attention_scores, dim=1)
@@ -66,12 +67,29 @@ class MultiTaskTBIPredictor(nn.Module):
         # Shared layers
         self.shared_layer = nn.Linear(hidden_size, hidden_size)
         
+        # Add layers for incorporating previous window predictions
+        self.prev_projection = nn.Linear(num_windows-1, hidden_size // 2)
+        self.combined_layer = nn.Linear(hidden_size + hidden_size // 2, hidden_size)
+        
         # Task-specific layers for each window
         self.task_layers = nn.ModuleList([
             nn.Linear(hidden_size, 1) for _ in range(num_windows)
         ])
     
-    def forward(self, input_ids, attention_mask, temporal_weights=None):
+    def forward(self, input_ids, attention_mask, temporal_weights=None, prev_window_preds=None):
+        """
+        Forward pass with optional previous window predictions
+        
+        Args:
+            input_ids: Input token IDs
+            attention_mask: Attention mask
+            temporal_weights: Temporal weights for attention
+            prev_window_preds: Previous window predictions (batch_size, num_prev_windows)
+                For 30-day window: None (no previous windows)
+                For 60-day window: 30-day predictions (batch_size, 1) 
+                For 180-day window: 30,60-day predictions (batch_size, 2)
+                For 365-day window: 30,60,180-day predictions (batch_size, 3)
+        """
         # Get BERT outputs
         outputs = self.bert(
             input_ids=input_ids,
@@ -88,6 +106,17 @@ class MultiTaskTBIPredictor(nn.Module):
             attention_mask,
             temporal_weights
         )
+        
+        # Process previous window predictions if provided
+        if prev_window_preds is not None:
+            # Project previous predictions to higher dimension
+            prev_features = self.prev_projection(prev_window_preds)
+            
+            # Combine with context vector
+            combined_vector = torch.cat([context_vector, prev_features], dim=1)
+            
+            # Project back to original dimension
+            context_vector = self.combined_layer(combined_vector)
         
         # Apply shared layer
         shared_features = F.relu(self.shared_layer(context_vector))
