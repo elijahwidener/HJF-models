@@ -4,7 +4,26 @@ from config import DEVICE
 
 def risk_stratify_patients(model, dataloader, device, thresholds={'low': 0.3, 'high': 0.7}):
     """
-    Stratify patients into risk categories
+    Stratify patients into risk categories based on model predictions.
+    
+    This function categorizes patients into three risk tiers:
+    - Low risk: Prediction score < low threshold (default 0.3)
+    - Medium risk: Score between low and high thresholds
+    - High risk: Prediction score >= high threshold (default 0.7)
+    
+    Risk stratification is performed for each prediction window (30, 60, 180, 365 days),
+    allowing for time-specific risk assessment and potential intervention planning.
+    
+    Args:
+        model (MultiTaskTBIPredictor): The trained model
+        dataloader (DataLoader): DataLoader containing patient data
+        device (torch.device): Device to use for computation
+        thresholds (dict): Dictionary with 'low' and 'high' threshold values
+        
+    Returns:
+        tuple: (stratified_patients, all_preds)
+            - stratified_patients: Dictionary mapping windows to risk category groupings
+            - all_preds: Raw prediction scores
     """
     # Use the window ensembling function instead of direct model calls
     all_preds, all_labels = predict_with_window_ensembling(model, dataloader, device)
@@ -104,7 +123,28 @@ def predict_for_new_patient(model, tokenizer, patient_encounters, device):
 
 def predict_with_window_ensembling(model, dataloader, device):
     """
-    Make predictions for all windows, using predictions from previous windows
+    Make predictions with a sequential ensembling approach where predictions for earlier time
+    windows are used to inform predictions for later time windows.
+    
+    This function implements a cascading prediction approach:
+    1. First predicts the 30-day window outcome
+    2. Uses the 30-day prediction to help predict the 60-day window
+    3. Uses both 30 and 60-day predictions to predict the 180-day window
+    4. Uses all previous predictions to predict the 365-day window
+    
+    This approach leverages the intuition that mental health outcomes are temporally 
+    correlated - a positive prediction in an earlier window may increase the likelihood
+    of a positive prediction in later windows.
+    
+    Args:
+        model (MultiTaskTBIPredictor): The trained model
+        dataloader (DataLoader): DataLoader containing the evaluation data
+        device (torch.device): Device to use for computation
+        
+    Returns:
+        tuple: (all_preds, all_labels)
+            - all_preds: Dictionary mapping window names to prediction arrays
+            - all_labels: Dictionary mapping window names to label arrays
     """
     model.eval()
     

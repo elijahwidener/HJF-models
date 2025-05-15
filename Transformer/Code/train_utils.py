@@ -15,7 +15,30 @@ from predict import predict_with_window_ensembling
 
 def train_epoch(model, dataloader, optimizer, scheduler, device, class_weights=None):
     """
-    Train the model for one epoch
+    Train the model for one epoch with support for class weighting to handle imbalanced data.
+    
+    This function handles a complete training epoch including:
+    1. Forward and backward passes through the model
+    2. Application of window-specific class weights to address class imbalance
+    3. Gradient clipping to prevent exploding gradients
+    4. Learning rate scheduling
+    5. Progress reporting
+    
+    The class weighting is particularly important for medical prediction tasks where
+    positive cases (patients developing mental health conditions) are typically much
+    rarer than negative cases, creating a class imbalance.
+    
+    Args:
+        model (MultiTaskTBIPredictor): The model to train
+        dataloader (DataLoader): DataLoader containing training data
+        optimizer (torch.optim.Optimizer): Optimizer for parameter updates
+        scheduler: Learning rate scheduler
+        device (torch.device): Device to use for computation
+        class_weights (list, optional): List of weights for positive class in each window
+            to address class imbalance
+            
+    Returns:
+        float: Average loss for the epoch
     """
     model.train()
     total_loss = 0

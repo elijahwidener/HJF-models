@@ -274,11 +274,28 @@ def validate_days_from_tbi(processed_data, output_dir="analysis"):
 
 def analyze_dataset(processed_data, output_dir="analysis"):
     """
-    Run a comprehensive analysis of the dataset
+    Run a comprehensive analysis of the dataset to validate its quality and characteristics.
+    
+    This function performs multiple analytical checks on the prepared dataset:
+    1. Class distribution analysis across different time windows
+    2. Encounter count distribution analysis
+    3. Days-from-TBI distribution analysis
+    4. Stratified dataset splitting with validation of split quality
+    5. Generation of visualizations for key distributions
+    
+    The analysis results are saved both as JSON statistics and as visualization plots,
+    providing a comprehensive data quality report that can help identify potential
+    issues before model training.
     
     Args:
-        processed_data: List of processed patient data
-        output_dir: Directory to save analysis results
+        processed_data (list): List of processed patient data dictionaries
+        output_dir (str): Directory to save analysis results and visualizations
+        
+    Returns:
+        tuple: (train_data, val_data, test_data)
+            - train_data: Training data subset
+            - val_data: Validation data subset
+            - test_data: Test data subset
     """
     os.makedirs(output_dir, exist_ok=True)
     

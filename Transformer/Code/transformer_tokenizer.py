@@ -7,7 +7,22 @@ from keras import pad_sequences
 
 class EncounterTokenizer:
     """
-    Tokenizer for converting encounter text tokens to numerical tokens for transformers
+    Specialized tokenizer for converting medical encounter text tokens to numerical sequences.
+    
+    This tokenizer is designed specifically for clinical encounter data, with features for:
+    1. Handling patient-level sequences of encounters
+    2. Creating padded sequences with proper attention masks
+    3. Building transformer-ready inputs with special tokens (CLS, SEP)
+    4. Managing out-of-vocabulary tokens in clinical text
+    
+    Unlike standard NLP tokenizers, this tokenizer preserves the hierarchical structure
+    of patient data (patients → encounters → tokens) and provides utilities to flatten
+    this structure appropriately for transformer models.
+    
+    Args:
+        vocab_size (int): Maximum size of vocabulary to use
+        max_sequence_length (int): Maximum sequence length to pad/truncate to
+        oov_token (str): Token to use for out-of-vocabulary tokens
     """
     
     def __init__(self, vocab_size=10000, max_sequence_length=100, oov_token="<UNK>"):

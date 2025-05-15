@@ -26,7 +26,25 @@ dmis_dict = dmis_mapping.set_index('DMIS ID')[
 
 def encounter_to_text(encounter, diagnosis_map, category_map, provider_spec_map, dmis_dict):
     """
-    Convert a single encounter to a text representation.
+    Convert a single medical encounter record to a text representation suitable for transformer models.
+    
+    This function transforms structured encounter data into a space-separated sequence of tokens that 
+    preserves critical clinical information while standardizing the format for NLP processing.
+    Each piece of information is prefixed with its category (e.g., "DIAG1_DESC_" for primary diagnosis).
+    
+    Args:
+        encounter (dict): Dictionary containing the encounter data fields
+        diagnosis_map (dict): Mapping from diagnosis codes to human-readable descriptions
+        category_map (dict): Mapping from diagnosis code first character to diagnosis category
+        provider_spec_map (dict): Mapping from provider specialty codes to specialty descriptions
+        dmis_dict (dict): Mapping from DMIS IDs to facility information
+        
+    Returns:
+        str: Space-separated sequence of tokens representing the encounter
+    
+    Example output:
+        "DATE_2023-05-15 AGE_45 GENDER_Male FACILITY_NAME_Walter_Reed DIAG1_CAT_Mental_Disorders 
+         DIAG1_DESC_Anxiety_Disorder PROVIDER_SPEC_Psychiatrist"
     """
     tokens = []
     
@@ -357,15 +375,35 @@ def convert_patient_encounters(df, patient_id):
 
 def process_patient_cohort_incremental(df, output_dir="token_data", checkpoint_every=100):
     """
-    Process a cohort of patients incrementally, with checkpointing
+    Process a cohort of patients incrementally with checkpointing to handle large datasets.
+    
+    This function converts raw encounter data to tokenized format for all patients in a cohort,
+    with built-in checkpointing to allow for processing very large datasets without memory issues
+    or having to restart from scratch in case of interruption.
+    
+    The function also determines mental health outcomes for different time windows post-TBI
+    by looking for diagnosis codes starting with 'F' (mental health codes in ICD-10).
+    
+    Key steps:
+    1. Loads existing progress if available to resume processing
+    2. Processes each patient's encounters to generate tokenized sequences
+    3. Determines mental health outcomes for 30, 60, 180, and 365-day windows
+    4. Periodically saves checkpoints with processed data
+    5. Generates summary statistics upon completion
     
     Args:
-        df: DataFrame containing encounters
-        output_dir: Directory to save token data
-        checkpoint_every: Save progress after this many patients
+        df (DataFrame): DataFrame containing encounter records with columns:
+            - pseudo_personid: Patient identifier
+            - servicedate: Date of the encounter
+            - tbi_index_date: Date of the TBI event
+            - diag1-diag5: Diagnosis codes
+        output_dir (str): Directory to save the processed data
+        checkpoint_every (int): Save checkpoint after processing this many patients
         
     Returns:
-        Dictionary with patient data and MH outcomes
+        tuple: (patient_data, outcomes)
+            - patient_data: Dictionary mapping patient IDs to tokenized encounters
+            - outcomes: Dictionary of outcomes by window with (patient_id, has_mh) tuples
     """
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)

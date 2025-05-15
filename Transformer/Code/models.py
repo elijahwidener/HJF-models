@@ -4,8 +4,29 @@ import torch.nn.functional as F
 from transformers import AutoModel
 
 class TemporalAttention(nn.Module):
-    """Attention mechanism that incorporates temporal weights"""
+    """
+    Attention mechanism that incorporates temporal proximity weights for clinical events.
     
+    This module applies both standard attention (based on content relevance) and temporal
+    weighting (based on proximity to the target event) to create a context-sensitive
+    representation that prioritizes more recent and relevant information.
+    
+    This is particularly important for clinical predictive models where recent events
+    may have stronger predictive value than distant ones.
+    
+    Args:
+        hidden_size (int): Dimension of the input hidden states
+        
+    Forward inputs:
+        hidden_states (torch.Tensor): Token-level representations from BERT [batch_size, seq_len, hidden_size]
+        attention_mask (torch.Tensor): Binary mask for valid tokens [batch_size, seq_len]
+        temporal_weights (torch.Tensor, optional): Weights based on temporal proximity [batch_size, num_encounters]
+        
+    Returns:
+        tuple: (context_vector, attention_weights)
+            - context_vector: Weighted sum of hidden states [batch_size, hidden_size]
+            - attention_weights: Attention distribution over tokens [batch_size, seq_len]
+    """    
     def __init__(self, hidden_size):
         super(TemporalAttention, self).__init__()
         self.attention = nn.Linear(hidden_size, 1)
